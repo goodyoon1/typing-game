@@ -1,0 +1,2801 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>여행 영어 타자 - Travel English Typing</title>
+  <meta name="description" content="해외여행 필수 쉬운 영어 단어 15개로 즐기는 단계별 승급 타자 게임과 한글 뜻 단어장">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel Standalone for in-browser JSX parsing (Allows double-click direct execution) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+    .animate-shake {
+      animation: shake 0.25s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-[#F9F8F6] text-stone-900 antialiased selection:bg-amber-100 selection:text-amber-900">
+  <div id="root"></div>
+
+  <!-- Audio Element for Same Directory BGM (publish/bgm.mp3) -->
+  <audio id="bgm-player" loop preload="none" src="./bgm.mp3"></audio>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ==========================================
+    // 1. DATASETS (15 Travel Words & 5 Tiers)
+    // ==========================================
+    const TRAVEL_WORDS = [
+      {
+        id: 1, word: 'passport', meaning: '여권', pronunciation: '패스포트 [ˈpæspɔːrt]',
+        category: '공항/입국', situation: '공항 출입국 심사대나 면세점 쇼핑 시 신분 확인',
+        exampleSentence: 'May I see your passport, please?', exampleTranslation: '여권을 보여주시겠어요?',
+        tip: '해외여행에서 가장 중요한 신분증! 호텔 체크인할 때도 꼭 필요해요.'
+      },
+      {
+        id: 2, word: 'ticket', meaning: '표 / 탑승권', pronunciation: '티켓 [ˈtɪkɪt]',
+        category: '공항/입국', situation: '비행기 탑승권이나 기차, 지하철 표를 제시할 때',
+        exampleSentence: 'Where can I buy a ticket?', exampleTranslation: '표는 어디서 살 수 있나요?',
+        tip: '왕복표는 Round-trip ticket, 편도표는 One-way ticket이라고 해요.'
+      },
+      {
+        id: 3, word: 'hotel', meaning: '호텔 / 숙소', pronunciation: '호텔 [hoʊˈtel]',
+        category: '숙소/휴식', situation: '택시 기사에게 목적지를 알리거나 체크인할 때',
+        exampleSentence: 'I have a reservation at this hotel.', exampleTranslation: '이 호텔에 예약이 되어 있습니다.',
+        tip: '영어로 발음할 때 두 번째 음절 "텔"에 강세를 두면 더 원어민처럼 들려요.'
+      },
+      {
+        id: 4, word: 'airport', meaning: '공항', pronunciation: '에어포트 [ˈerpɔːrt]',
+        category: '공항/입국', situation: '여행의 출발과 도착지, 대중교통 탑승 시',
+        exampleSentence: 'Take me to the airport, please.', exampleTranslation: '공항으로 가주세요.',
+        tip: '국제선 터미널은 International Terminal, 국내선은 Domestic Terminal입니다.'
+      },
+      {
+        id: 5, word: 'luggage', meaning: '수하물 / 여행 짐', pronunciation: '러기지 [ˈlʌɡɪdʒ]',
+        category: '공항/입국', situation: '비행기 짐 부치기, 호텔 짐 보관 요청 시',
+        exampleSentence: 'Can you hold my luggage until check-in?', exampleTranslation: '체크인 전까지 짐을 보관해 주실 수 있나요?',
+        tip: 'Baggage와 같은 의미예요. 기내 반입용 수하물은 Carry-on이라고 불러요.'
+      },
+      {
+        id: 6, word: 'subway', meaning: '지하철', pronunciation: '서브웨이 [ˈsʌbweɪ]',
+        category: '교통/이동', situation: '도시 내 대중교통 이용 및 노선 확인 시',
+        exampleSentence: 'Is there a subway station near here?', exampleTranslation: '이 근처에 지하철역이 있나요?',
+        tip: '런던에서는 Tube/Underground, 파리에서는 Metro라고 부릅니다.'
+      },
+      {
+        id: 7, word: 'taxi', meaning: '택시', pronunciation: '택시 [ˈtæksi]',
+        category: '교통/이동', situation: '짐이 많거나 심야 이동 시 빠르고 편리한 이동',
+        exampleSentence: 'Could you please call a taxi for me?', exampleTranslation: '택시 한 대만 불러주시겠어요?',
+        tip: '영국에서는 Cab이라고도 자주 부릅니다.'
+      },
+      {
+        id: 8, word: 'menu', meaning: '메뉴판', pronunciation: '메뉴 [ˈmenjuː]',
+        category: '식당/카페', situation: '현지 식당에 착석 후 음식 주문할 때',
+        exampleSentence: 'Could we see the menu, please?', exampleTranslation: '메뉴판 좀 볼 수 있을까요?',
+        tip: '영어 메뉴판을 원할 때는 "English menu, please"라고 짧게 말해도 다 통해요.'
+      },
+      {
+        id: 9, word: 'water', meaning: '물', pronunciation: '워터 [ˈwɔːtər]',
+        category: '식당/카페', situation: '기내, 식당, 카페에서 수분 섭취 요청 시',
+        exampleSentence: 'Could I have a glass of water?', exampleTranslation: '물 한 잔 주시겠어요?',
+        tip: '유럽 식당에서는 탄산수(Sparkling)와 일반 생수(Still)를 구분해요.'
+      },
+      {
+        id: 10, word: 'coffee', meaning: '커피', pronunciation: '커피 [ˈkɔːfi]',
+        category: '식당/카페', situation: '해외 로컬 카페나 아침 식사 주문 시',
+        exampleSentence: 'One iced Americano and one hot coffee, please.', exampleTranslation: '아이스 아메리카노 하나랑 따뜻한 커피 한 잔 주세요.',
+        tip: '해외에서는 따뜻한 커피가 기본이라 아이스를 원하면 꼭 "Iced"를 붙이세요.'
+      },
+      {
+        id: 11, word: 'bill', meaning: '계산서', pronunciation: '빌 [bɪl]',
+        category: '쇼핑/계산', situation: '식사를 마치고 자리에서 결제를 요청할 때',
+        exampleSentence: 'Could we have the bill, please?', exampleTranslation: '계산서 좀 갖다 주시겠어요?',
+        tip: '미국에서는 Check, 영국과 유럽에서는 Bill을 주로 씁니다.'
+      },
+      {
+        id: 12, word: 'receipt', meaning: '영수증', pronunciation: '리시트 [rɪˈsiːt]',
+        category: '쇼핑/계산', situation: '물건 구매 후 교환/환불 및 택스리펀 신청 시',
+        exampleSentence: 'Do you need a receipt?', exampleTranslation: '영수증 필요하신가요?',
+        tip: '주의! 중간의 알파벳 "p"는 묵음이라 [리시트]로 발음해요.'
+      },
+      {
+        id: 13, word: 'restroom', meaning: '화장실', pronunciation: '레스트룸 [ˈrestruːm]',
+        category: '안전/편의', situation: '관광지, 레스토랑, 백화점에서 화장실을 찾을 때',
+        exampleSentence: 'Where is the restroom?', exampleTranslation: '화장실이 어디에 있나요?',
+        tip: '미국은 Restroom, 영국은 Toilet/Loo, 유럽 공공장소는 WC 표기가 흔해요.'
+      },
+      {
+        id: 14, word: 'help', meaning: '도움 / 도와주세요', pronunciation: '헬프 [help]',
+        category: '안전/편의', situation: '길을 잃었거나 응급 상황, 길 안내가 필요할 때',
+        exampleSentence: 'Excuse me, I need some help.', exampleTranslation: '실례합니다, 도움을 좀 받고 싶어요.',
+        tip: '정중하게 부탁할 때는 "Could you help me?"라고 표현하세요.'
+      },
+      {
+        id: 15, word: 'station', meaning: '역 / 정류장', pronunciation: '스테이션 [ˈsteɪʃn]',
+        category: '교통/이동', situation: '기차역(Train station)이나 버스터미널을 찾아갈 때',
+        exampleSentence: 'How can I get to the central station?', exampleTranslation: '중앙역까지 어떻게 가나요?',
+        tip: '주요 도시에는 여러 역이 있으므로 Central station 등 구체적 명칭을 확인하세요.'
+      }
+    ];
+
+    const STAGE_TIERS = [
+      {
+        level: 1, id: 'economy', className: '이코노미 클래스 (Economy)', seatBadge: 'ECONOMY CLASS',
+        travelerTitle: '초보 배낭여행자', badgeIcon: '🥉', airportCode: 'ICN', destination: '서울 인천 (출발 준비)',
+        flag: '🇰🇷', summary: '가장 짧고 쉬운 3~4글자 필수 단어', wordIds: [14, 8, 7],
+        minCpm: 60, minAccuracy: 80,
+        starThresholds: { twoStar: { minCpm: 90, minAccuracy: 88 }, threeStar: { minCpm: 120, minAccuracy: 95 } }
+      },
+      {
+        level: 2, id: 'premium_economy', className: '프리미엄 이코노미 (Premium Economy)', seatBadge: 'PREMIUM ECONOMY',
+        travelerTitle: '자유 여행 탐험가', badgeIcon: '🥈', airportCode: 'NRT', destination: '도쿄 나리타 (첫 번째 기착지)',
+        flag: '🇯🇵', summary: '식당과 호텔에서 꼭 쓰는 4~5글자 단어', wordIds: [11, 9, 3],
+        minCpm: 90, minAccuracy: 85,
+        starThresholds: { twoStar: { minCpm: 130, minAccuracy: 90 }, threeStar: { minCpm: 160, minAccuracy: 96 } }
+      },
+      {
+        level: 3, id: 'business', className: '비즈니스 클래스 (Business)', seatBadge: 'BUSINESS CLASS',
+        travelerTitle: '베테랑 글로벌 여행자', badgeIcon: '🥇', airportCode: 'BKK', destination: '방콕 수완나품 (교통 & 카페)',
+        flag: '🇹🇭', summary: '도시 이동과 티켓 예매 6글자 실전 단어', wordIds: [2, 10, 6],
+        minCpm: 120, minAccuracy: 88,
+        starThresholds: { twoStar: { minCpm: 160, minAccuracy: 92 }, threeStar: { minCpm: 200, minAccuracy: 98 } }
+      },
+      {
+        level: 4, id: 'first', className: '퍼스트 클래스 (First Class)', seatBadge: 'FIRST CLASS',
+        travelerTitle: '월드와이드 마스터', badgeIcon: '💎', airportCode: 'CDG', destination: '파리 샤를드골 (환승 & 수하물)',
+        flag: '🇫🇷', summary: '공항과 역에서 필수인 7글자 집중 단어', wordIds: [4, 15, 5],
+        minCpm: 150, minAccuracy: 90,
+        starThresholds: { twoStar: { minCpm: 190, minAccuracy: 94 }, threeStar: { minCpm: 240, minAccuracy: 98 } }
+      },
+      {
+        level: 5, id: 'vip_ambassador', className: 'VIP 골드 앰배서더 (VIP Grand Master)', seatBadge: 'VIP GOLD PASSPORT',
+        travelerTitle: '전설의 여행 마스터', badgeIcon: '👑', airportCode: 'JFK', destination: '뉴욕 JFK (최종 목적지 & 영예)',
+        flag: '🇺🇸', summary: '묵음과 긴 철자가 포함된 7~8글자 최고난도', wordIds: [12, 1, 13],
+        minCpm: 170, minAccuracy: 92,
+        starThresholds: { twoStar: { minCpm: 210, minAccuracy: 96 }, threeStar: { minCpm: 260, minAccuracy: 98 } }
+      }
+    ];
+
+    function getWordsForTier(tier) {
+      return tier.wordIds.map(id => TRAVEL_WORDS.find(w => w.id === id)).filter(Boolean);
+    }
+
+    // ==========================================
+    // 2. AUDIO & BGM CONTROLLERS
+    // ==========================================
+    class SoundController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      getAudioContext() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        return this.ctx;
+      }
+      playKeyClick() {
+        if (!this.enabled) return;
+        try {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320 + Math.random() * 40, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.04);
+        } catch(e) {}
+      }
+      playWordSuccess() {
+        if (!this.enabled) return;
+        try {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const startTime = ctx.currentTime + idx * 0.04;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.12, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.25);
+          });
+        } catch(e) {}
+      }
+      playTypo() {
+        if (!this.enabled) return;
+        try {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.07, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.1);
+        } catch(e) {}
+      }
+      playPromotion() {
+        if (!this.enabled) return;
+        try {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          const melody = [
+            { f: 440.00, t: 0, d: 0.1 },
+            { f: 554.37, t: 0.1, d: 0.1 },
+            { f: 659.25, t: 0.2, d: 0.12 },
+            { f: 880.00, t: 0.32, d: 0.35 },
+            { f: 1108.73, t: 0.5, d: 0.5 }
+          ];
+          melody.forEach(note => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const startTime = ctx.currentTime + note.t;
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(note.f, startTime);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.14, startTime + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + note.d);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + note.d);
+          });
+        } catch(e) {}
+      }
+      playVictory() {
+        if (!this.enabled) return;
+        try {
+          const ctx = this.getAudioContext();
+          if (!ctx) return;
+          const chords = [
+            { freqs: [523.25, 659.25, 783.99], delay: 0, dur: 0.2 },
+            { freqs: [587.33, 739.99, 880.00], delay: 0.18, dur: 0.2 },
+            { freqs: [659.25, 830.61, 987.77], delay: 0.36, dur: 0.25 },
+            { freqs: [1046.50, 1318.51, 1567.98], delay: 0.58, dur: 0.7 }
+          ];
+          chords.forEach(chord => {
+            chord.freqs.forEach(freq => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              const startTime = ctx.currentTime + chord.delay;
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(freq, startTime);
+              gain.gain.setValueAtTime(0, startTime);
+              gain.gain.linearRampToValueAtTime(0.12, startTime + 0.03);
+              gain.gain.exponentialRampToValueAtTime(0.001, startTime + chord.dur);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(startTime);
+              osc.stop(startTime + chord.dur);
+            });
+          });
+        } catch(e) {}
+      }
+      speakEnglish(text) {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.rate = 0.88;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+        } catch(e) {}
+      }
+    }
+    const soundController = new SoundController();
+
+    // Background Music Controller: prioritize same-directory bgm.mp3 (publish/bgm.mp3)
+    // with smooth Web Audio API ambient travel chime progression as fallback
+    class BgmController {
+      constructor() {
+        this.audio = null;
+        this.enabled = false;
+        this.isSynth = false;
+        this.synthCtx = null;
+        this.synthTimer = null;
+        // Priority: 1. same folder as index.html (publish/bgm.mp3)
+        //           2. public folder or parent directory
+        this.candidateUrls = [
+          './bgm.mp3',
+          'bgm.mp3',
+          '../publish/bgm.mp3',
+          '../public/bgm.mp3',
+          'public/bgm.mp3'
+        ];
+        this.currentIdx = 0;
+      }
+
+      getAudioElement() {
+        if (!this.audio) {
+          this.audio = document.getElementById('bgm-player') || new Audio('./bgm.mp3');
+          this.audio.loop = true;
+          this.audio.volume = 0.35;
+        }
+        return this.audio;
+      }
+
+      startSynthBgm() {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          if (!this.synthCtx) {
+            this.synthCtx = new AudioContextClass();
+          }
+          if (this.synthCtx.state === 'suspended') {
+            this.synthCtx.resume();
+          }
+          this.isSynth = true;
+
+          // Gentle ambient travel chime chords (C - Am - F - G)
+          const notes = [
+            [261.63, 329.63, 392.00, 523.25],
+            [220.00, 261.63, 329.63, 440.00],
+            [174.61, 220.00, 261.63, 349.23],
+            [196.00, 246.94, 293.66, 392.00]
+          ];
+          let chordIndex = 0;
+
+          const playChord = () => {
+            if (!this.enabled || !this.isSynth) return;
+            const ctx = this.synthCtx;
+            if (!ctx) return;
+            const chord = notes[chordIndex % notes.length];
+            chordIndex++;
+
+            chord.forEach((freq, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              const now = ctx.currentTime + i * 0.16;
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, now);
+              gain.gain.setValueAtTime(0, now);
+              gain.gain.linearRampToValueAtTime(0.024, now + 0.3);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now);
+              osc.stop(now + 2.4);
+            });
+
+            this.synthTimer = setTimeout(playChord, 2400);
+          };
+
+          playChord();
+        } catch(e) {}
+      }
+
+      stopSynthBgm() {
+        this.isSynth = false;
+        if (this.synthTimer) {
+          clearTimeout(this.synthTimer);
+          this.synthTimer = null;
+        }
+      }
+
+      tryPlayMp3(idx = 0) {
+        if (!this.enabled) return;
+        if (idx >= this.candidateUrls.length) {
+          // If all mp3 paths fail, fallback cleanly to ambient synth
+          this.startSynthBgm();
+          return;
+        }
+
+        const audio = this.getAudioElement();
+        const targetUrl = this.candidateUrls[idx];
+        
+        // Only reassign src if different
+        if (!audio.src.endsWith(targetUrl.replace(/^\.\//, ''))) {
+          audio.src = targetUrl;
+        }
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Successfully started playing the MP3 file!
+            this.stopSynthBgm();
+          }).catch(() => {
+            // If this candidate path failed, try next candidate or synth
+            this.tryPlayMp3(idx + 1);
+          });
+        }
+      }
+
+      toggle() {
+        this.enabled = !this.enabled;
+        if (this.enabled) {
+          this.tryPlayMp3(0);
+        } else {
+          if (this.audio) {
+            this.audio.pause();
+          }
+          this.stopSynthBgm();
+        }
+        return this.enabled;
+      }
+    }
+    const bgmController = new BgmController();
+
+    // ==========================================
+    // 3. LOCALSTORAGE RANKING STORAGE UTILITIES
+    // ==========================================
+    const STORAGE_KEY = 'typingRanking';
+
+    function formatRankingDate(date = new Date()) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      const hh = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
+    }
+
+    function loadTypingRankings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch(e) {}
+      return [];
+    }
+
+    function saveTypingRanking(이름, 점수) {
+      const current = loadTypingRankings();
+      const now = new Date();
+      const newRecord = {
+        날짜: formatRankingDate(now),
+        이름: 이름.trim(),
+        점수: 점수,
+        timestamp: now.getTime(),
+        id: `rank-${now.getTime()}-${Math.random().toString(36).substring(2, 6)}`
+      };
+      const updated = [newRecord, ...current];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch(e) {}
+      return newRecord;
+    }
+
+    // ==========================================
+    // 4. ICON COMPONENTS (Clean SVG)
+    // ==========================================
+    const IconPlane = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+    );
+    const IconCompass = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+    );
+    const IconBookOpen = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/><path d="M6 8h2"/><path d="M16 8h2"/></svg>
+    );
+    const IconTrophy = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    );
+    const IconVolume2 = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    );
+    const IconVolumeX = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+    );
+    const IconMusic = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    );
+    const IconRotateCcw = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    );
+    const IconPlay = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    );
+    const IconCheck = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    );
+    const IconCheckCircle2 = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+    );
+    const IconAlertCircle = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    );
+    const IconBookmarkPlus = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+    );
+    const IconStar = ({ className = "w-4 h-4", fill = false }) => (
+      <svg className={className} viewBox="0 0 24 24" fill={fill ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    );
+    const IconLock = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    );
+    const IconArrowRight = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    );
+    const IconHeart = ({ className = "w-4 h-4", fill = false }) => (
+      <svg className={className} viewBox="0 0 24 24" fill={fill ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+    );
+    const IconSparkles = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+    );
+    const IconSearch = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    );
+    const IconTrash2 = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+    );
+    const IconX = ({ className = "w-4 h-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    );
+
+    // ==========================================
+    // 5. RECORDS MODAL (🏆 명예의 전당)
+    // ==========================================
+    const RecordsModal = ({ isOpen, onClose, highlightedId }) => {
+      const [rankedList, setRankedList] = useState([]);
+
+      useEffect(() => {
+        if (isOpen) {
+          const rawRecords = loadTypingRankings();
+          const parseScore = (val) => {
+            if (typeof val === 'number') return val;
+            const match = String(val).match(/\d+/);
+            return match ? parseInt(match[0], 10) : 0;
+          };
+
+          // 1. 점수 높은 순서
+          // 2. 같은 점수는 먼저 기록한 사람이 위에
+          const sorted = [...rawRecords].sort((a, b) => {
+            const scoreA = parseScore(a.점수);
+            const scoreB = parseScore(b.점수);
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            const timeA = a.timestamp || (a.날짜 ? new Date(a.날짜.replace(/\./g, '/')).getTime() : 0);
+            const timeB = b.timestamp || (b.날짜 ? new Date(b.날짜.replace(/\./g, '/')).getTime() : 0);
+            return timeA - timeB;
+          });
+
+          // 순위 계산: 점수 같으면 같은 순위 (예: 90, 80, 80, 70 -> 1, 2, 2, 4위)
+          let currentRank = 1;
+          const ranked = sorted.map((item, idx) => {
+            const itemScore = parseScore(item.점수);
+            if (idx > 0) {
+              const prevScore = parseScore(sorted[idx - 1].점수);
+              if (itemScore !== prevScore) {
+                currentRank = idx + 1;
+              }
+            } else {
+              currentRank = 1;
+            }
+            return {
+              ...item,
+              rank: currentRank,
+              numericScore: itemScore
+            };
+          });
+
+          setRankedList(ranked.slice(0, 10)); // 최대 10위까지
+        }
+      }, [isOpen, highlightedId]);
+
+      const clearRecords = () => {
+        if (window.confirm('명예의 전당 모든 랭킹 기록을 초기화하시겠습니까?')) {
+          localStorage.removeItem(STORAGE_KEY);
+          setRankedList([]);
+        }
+      };
+
+      const getRankBadge = (rank) => {
+        if (rank === 1) return '🥇';
+        if (rank === 2) return '🥈';
+        if (rank === 3) return '🥉';
+        return null;
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="relative w-full max-w-xl bg-white border border-stone-200 rounded-3xl shadow-2xl p-6 sm:p-7 overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-stone-200 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl shadow-2xs">
+                  🏆
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-stone-900 flex items-center gap-2">
+                    <span>명예의 전당 순위표</span>
+                    <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                      TOP 10
+                    </span>
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    점수가 같으면 같은 순위(1, 2, 2, 4위)이며 먼저 기록한 사람이 위에 위치합니다.
+                  </p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-700 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
+                <IconX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Column Headers */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-2.5 mt-2 bg-stone-100 rounded-xl text-xs font-extrabold text-stone-500 shrink-0">
+              <div className="col-span-2 text-center">순위</div>
+              <div className="col-span-4 text-left">이름</div>
+              <div className="col-span-3 text-right">점수</div>
+              <div className="col-span-3 text-right">날짜</div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto py-2 space-y-2">
+              {rankedList.length === 0 ? (
+                <div className="py-14 text-center text-stone-400 space-y-2">
+                  <span className="text-4xl block">🎖️</span>
+                  <p className="text-sm font-semibold text-stone-600">아직 등록된 순위 기록이 없습니다</p>
+                  <p className="text-xs text-stone-400">게임을 진행하고 결과 화면에서 내 이름을 남겨보세요!</p>
+                </div>
+              ) : (
+                rankedList.map((rec) => {
+                  const isNew = highlightedId && rec.id === highlightedId;
+                  const medal = getRankBadge(rec.rank);
+                  return (
+                    <div
+                      key={rec.id || `${rec.날짜}-${rec.이름}-${rec.numericScore}`}
+                      className={`grid grid-cols-12 gap-2 items-center px-4 py-3 rounded-2xl border transition-all ${
+                        isNew
+                          ? 'bg-amber-100/95 border-2 border-amber-400 text-stone-950 shadow-sm'
+                          : rec.rank === 1
+                          ? 'bg-amber-50/70 border-amber-200/90 text-stone-900'
+                          : 'bg-stone-50/70 border-stone-200/80 text-stone-800'
+                      }`}
+                    >
+                      <div className="col-span-2 flex items-center justify-center gap-1 font-mono font-black text-sm sm:text-base">
+                        <span>{rec.rank}위</span>
+                        {medal && <span className="text-base select-none">{medal}</span>}
+                      </div>
+                      <div className="col-span-4 flex items-center gap-1.5 min-w-0">
+                        <span className="font-extrabold text-sm sm:text-base text-stone-900 truncate">
+                          {rec.이름}
+                        </span>
+                        {isNew && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-black bg-amber-500 text-white rounded-md shadow-2xs shrink-0 animate-pulse">
+                            <IconSparkles className="w-2.5 h-2.5" />
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <span className="font-mono font-black text-base sm:text-lg text-amber-700">
+                          {rec.numericScore}
+                          <span className="text-xs font-medium text-stone-500 ml-0.5">점</span>
+                        </span>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <span className="font-mono text-[11px] sm:text-xs text-stone-500 block">
+                          {rec.날짜}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 shrink-0">
+              <span>최대 10위까지 표시됩니다</span>
+              {rankedList.length > 0 && (
+                <button onClick={clearRecords} className="text-stone-400 hover:text-rose-600 flex items-center gap-1 transition-colors cursor-pointer">
+                  <IconTrash2 className="w-3.5 h-3.5" />
+                  <span>기록 초기화</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 6. GAME RESULT RECORD SUBMISSION SECTION
+    // ==========================================
+    const GameResultRecordSection = ({ score, onRestartWithoutSaving, nextAction }) => {
+      const [name, setName] = useState('');
+      const [errorMessage, setErrorMessage] = useState('');
+      const [isSaved, setIsSaved] = useState(false);
+      const [justSavedId, setJustSavedId] = useState(null);
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const inputRef = useRef(null);
+
+      const handleNameChange = (e) => {
+        if (isSaved) return;
+        const val = e.target.value.slice(0, 10);
+        setName(val);
+        if (errorMessage && val.trim().length > 0) {
+          setErrorMessage('');
+        }
+      };
+
+      const handleSaveRecord = (e) => {
+        e.preventDefault();
+        if (isSaved) return;
+        const trimmed = name.trim();
+        if (!trimmed) {
+          setErrorMessage('이름을 입력해 주세요');
+          inputRef.current?.focus();
+          soundController.playTypo();
+          return;
+        }
+
+        const saved = saveTypingRanking(trimmed, score);
+        if (saved && saved.id) {
+          setJustSavedId(saved.id);
+        }
+        setIsSaved(true);
+        setErrorMessage('');
+        soundController.playPromotion();
+
+        try {
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        } catch(err) {}
+      };
+
+      return (
+        <div className="w-full max-w-xl mx-auto my-6 p-5 sm:p-6 bg-gradient-to-b from-amber-50/60 to-white rounded-3xl border-2 border-amber-200/90 shadow-sm text-left">
+          <form onSubmit={handleSaveRecord} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label htmlFor="ranking-player-name-input" className="text-sm sm:text-base font-extrabold text-stone-900 flex items-center gap-1.5">
+                <IconTrophy className="w-4 h-4 text-amber-600" />
+                <span>여행자 이름 입력</span>
+                <span className="text-xs font-mono font-medium text-stone-400 ml-1">
+                  ({name.length}/10자)
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setShowLeaderboard(true)}
+                className="px-3.5 py-1.5 text-xs sm:text-sm font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+              >
+                <span>🏆 명예의 전당</span>
+              </button>
+            </div>
+
+            <div className="relative">
+              <input
+                id="ranking-player-name-input"
+                ref={inputRef}
+                type="text"
+                value={name}
+                onChange={handleNameChange}
+                maxLength={10}
+                disabled={isSaved}
+                placeholder={isSaved ? name : "이름 입력 (최대 10자)"}
+                className={`w-full py-3.5 sm:py-4 px-5 text-xl sm:text-2xl font-bold text-stone-900 placeholder:text-stone-400 placeholder:font-normal placeholder:text-lg sm:placeholder:text-xl rounded-2xl border-2 transition-all shadow-inner focus:outline-none focus:ring-4 ${
+                  isSaved
+                    ? 'bg-stone-100 border-stone-200 text-stone-600 cursor-not-allowed'
+                    : errorMessage
+                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-200 bg-rose-50/20 animate-shake'
+                    : 'bg-white border-stone-300 focus:border-amber-600 focus:ring-amber-200/60'
+                }`}
+              />
+            </div>
+
+            {errorMessage && (
+              <div className="flex items-center gap-2 text-rose-600 text-sm sm:text-base font-bold bg-rose-50 border border-rose-200 px-4 py-2.5 rounded-xl animate-shake">
+                <IconAlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {isSaved && (
+              <div className="p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-fade-in">
+                <div className="flex items-center gap-2 text-emerald-800 text-lg sm:text-xl font-black">
+                  <IconCheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                  <span>기록했어요! 🎉</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLeaderboard(true)}
+                  className="px-4 py-2 text-sm sm:text-base font-black text-amber-950 bg-amber-300 hover:bg-amber-400 rounded-xl transition-transform active:scale-95 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🏆 순위표에서 내 기록 확인</span>
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isSaved}
+                className={`w-full py-3.5 sm:py-4 px-6 text-lg sm:text-xl font-black rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                  isSaved
+                    ? 'bg-stone-200 text-stone-400 border border-stone-300 cursor-not-allowed shadow-none'
+                    : 'text-white bg-amber-600 hover:bg-amber-700 active:scale-98 cursor-pointer'
+                }`}
+              >
+                {isSaved ? (
+                  <>
+                    <IconCheck className="w-5 h-5 text-emerald-600 stroke-[3]" />
+                    <span>기록 완료</span>
+                  </>
+                ) : (
+                  <>
+                    <IconBookmarkPlus className="w-5 h-5" />
+                    <span>기록 남기기</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onRestartWithoutSaving}
+                className="w-full py-3.5 sm:py-4 px-6 text-base sm:text-lg font-bold text-stone-700 bg-white hover:bg-stone-100 active:scale-98 border-2 border-stone-300 hover:border-stone-400 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <IconRotateCcw className="w-5 h-5 text-stone-500" />
+                <span>기록 안 남기고 다시 하기</span>
+              </button>
+            </div>
+
+            {nextAction && isSaved && (
+              <div className="pt-2 text-center">
+                {nextAction}
+              </div>
+            )}
+          </form>
+
+          <RecordsModal
+            isOpen={showLeaderboard}
+            onClose={() => setShowLeaderboard(false)}
+            highlightedId={justSavedId}
+          />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 7. VIRTUAL KEYBOARD COMPONENT
+    // ==========================================
+    const KEYBOARD_ROWS = [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ];
+
+    const VirtualKeyboard = ({ activeKey = '', nextChar = '', onKeyClick }) => (
+      <div className="bg-stone-100/90 border border-stone-200/90 rounded-2xl p-3 sm:p-4 shadow-2xs max-w-2xl mx-auto select-none">
+        <div className="space-y-1.5 sm:space-y-2">
+          {KEYBOARD_ROWS.map((row, rIdx) => (
+            <div key={rIdx} className="flex justify-center gap-1 sm:gap-1.5">
+              {row.map(key => {
+                const isActive = activeKey.toLowerCase() === key;
+                const isNext = nextChar.toLowerCase() === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => onKeyClick && onKeyClick(key)}
+                    className={`h-9 sm:h-11 min-w-[28px] sm:min-w-[42px] px-2 sm:px-3 text-xs sm:text-sm font-mono font-bold rounded-xl transition-all uppercase flex items-center justify-center ${
+                      isActive
+                        ? 'bg-amber-600 text-white shadow-sm scale-95 ring-2 ring-amber-400'
+                        : isNext
+                        ? 'bg-amber-100 text-amber-900 border-2 border-amber-500 shadow-xs animate-pulse'
+                        : 'bg-white text-stone-800 border border-stone-200/80 hover:bg-stone-50 active:scale-95'
+                    }`}
+                  >
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+
+    // ==========================================
+    // 8. TIER PROMOTION MODE (단계별 승급전)
+    // ==========================================
+    const TierPromotionMode = ({ onOpenVocab }) => {
+      const [progress, setProgress] = useState(() => {
+        try {
+          const raw = localStorage.getItem('travel_typing_tier_progress');
+          if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        return {
+          currentTierLevel: 1,
+          records: {
+            1: { unlocked: true, stars: 0, bestCpm: 0, bestAccuracy: 0 },
+            2: { unlocked: false, stars: 0, bestCpm: 0, bestAccuracy: 0 },
+            3: { unlocked: false, stars: 0, bestCpm: 0, bestAccuracy: 0 },
+            4: { unlocked: false, stars: 0, bestCpm: 0, bestAccuracy: 0 },
+            5: { unlocked: false, stars: 0, bestCpm: 0, bestAccuracy: 0 }
+          }
+        };
+      });
+
+      const [selectedTier, setSelectedTier] = useState(STAGE_TIERS[0]);
+      const [gameState, setGameState] = useState('SELECT');
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+      const [stageWords, setStageWords] = useState([]);
+      const [wordIdx, setWordIdx] = useState(0);
+      const [typedInput, setTypedInput] = useState('');
+      const [isError, setIsError] = useState(false);
+      const [lastKeyPressed, setLastKeyPressed] = useState('');
+
+      const [startTime, setStartTime] = useState(null);
+      const [elapsedSeconds, setElapsedSeconds] = useState(0);
+      const [correctKeystrokes, setCorrectKeystrokes] = useState(0);
+      const [totalKeystrokes, setTotalKeystrokes] = useState(0);
+      const [currentCombo, setCurrentCombo] = useState(0);
+      const [maxCombo, setMaxCombo] = useState(0);
+
+      const [passedPromotion, setPassedPromotion] = useState(false);
+      const [earnedStars, setEarnedStars] = useState(0);
+      const [resultCpm, setResultCpm] = useState(0);
+      const [resultAccuracy, setResultAccuracy] = useState(0);
+
+      const [showKeyboard, setShowKeyboard] = useState(true);
+      const [autoSpeak, setAutoSpeak] = useState(true);
+
+      const inputRef = useRef(null);
+      const timerRef = useRef(null);
+
+      const totalStars = Object.values(progress.records).reduce((sum, r) => sum + (r.stars || 0), 0);
+      const currentWord = stageWords[wordIdx] || stageWords[0];
+      const targetWord = currentWord ? currentWord.word.toLowerCase() : '';
+
+      const focusInput = () => inputRef.current?.focus();
+
+      const startStage = (tier) => {
+        setSelectedTier(tier);
+        const words = getWordsForTier(tier);
+        setStageWords(words);
+        setWordIdx(0);
+        setTypedInput('');
+        setIsError(false);
+        setStartTime(null);
+        setElapsedSeconds(0);
+        setCorrectKeystrokes(0);
+        setTotalKeystrokes(0);
+        setCurrentCombo(0);
+        setMaxCombo(0);
+        setGameState('PLAYING');
+
+        setTimeout(() => {
+          focusInput();
+          if (autoSpeak && words[0]) {
+            soundController.speakEnglish(words[0].word);
+          }
+        }, 60);
+      };
+
+      useEffect(() => {
+        if (gameState === 'PLAYING' && startTime) {
+          timerRef.current = window.setInterval(() => {
+            setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+          }, 500);
+        }
+        return () => {
+          if (timerRef.current) clearInterval(timerRef.current);
+        };
+      }, [gameState, startTime]);
+
+      useEffect(() => {
+        if (gameState === 'PLAYING' && autoSpeak && currentWord) {
+          soundController.speakEnglish(currentWord.word);
+        }
+      }, [wordIdx, gameState, autoSpeak, currentWord]);
+
+      const handleStageComplete = useCallback((finalCorrect, finalTotal, durationSec) => {
+        const minutes = Math.max(durationSec / 60, 0.05);
+        const finalCpm = Math.round(finalCorrect / minutes);
+        const finalAccuracy = finalTotal > 0 ? Math.round((finalCorrect / finalTotal) * 100) : 100;
+
+        setResultCpm(finalCpm);
+        setResultAccuracy(finalAccuracy);
+
+        const meetsCpm = finalCpm >= selectedTier.minCpm;
+        const meetsAccuracy = finalAccuracy >= selectedTier.minAccuracy;
+        const passed = meetsCpm && meetsAccuracy;
+
+        setPassedPromotion(passed);
+
+        let stars = 0;
+        if (passed) {
+          if (
+            finalCpm >= selectedTier.starThresholds.threeStar.minCpm &&
+            finalAccuracy >= selectedTier.starThresholds.threeStar.minAccuracy
+          ) {
+            stars = 3;
+          } else if (
+            finalCpm >= selectedTier.starThresholds.twoStar.minCpm &&
+            finalAccuracy >= selectedTier.starThresholds.twoStar.minAccuracy
+          ) {
+            stars = 2;
+          } else {
+            stars = 1;
+          }
+
+          soundController.playPromotion();
+          try {
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.55 } });
+          } catch(e) {}
+
+          setProgress(prev => {
+            const currentRec = prev.records[selectedTier.level] || { unlocked: true, stars: 0, bestCpm: 0, bestAccuracy: 0 };
+            const updatedRecs = {
+              ...prev.records,
+              [selectedTier.level]: {
+                ...currentRec,
+                stars: Math.max(currentRec.stars, stars),
+                bestCpm: Math.max(currentRec.bestCpm, finalCpm),
+                bestAccuracy: Math.max(currentRec.bestAccuracy, finalAccuracy),
+                clearedAt: new Date().toISOString()
+              }
+            };
+            const nextLevel = selectedTier.level + 1;
+            if (nextLevel <= STAGE_TIERS.length) {
+              updatedRecs[nextLevel] = {
+                ...(updatedRecs[nextLevel] || { stars: 0, bestCpm: 0, bestAccuracy: 0 }),
+                unlocked: true
+              };
+            }
+            const newProg = {
+              currentTierLevel: Math.min(Math.max(prev.currentTierLevel, nextLevel), STAGE_TIERS.length),
+              records: updatedRecs
+            };
+            try {
+              localStorage.setItem('travel_typing_tier_progress', JSON.stringify(newProg));
+            } catch(e) {}
+            return newProg;
+          });
+        } else {
+          soundController.playTypo();
+        }
+
+        setEarnedStars(stars);
+        setGameState('RESULT');
+      }, [selectedTier]);
+
+      const handleInputChange = (e) => {
+        if (gameState !== 'PLAYING') return;
+        const value = e.target.value.toLowerCase();
+        const currStartTime = startTime || Date.now();
+        if (!startTime) setStartTime(currStartTime);
+
+        if (value.length > typedInput.length) {
+          const addedChar = value[value.length - 1];
+          setLastKeyPressed(addedChar);
+          const newTotal = totalKeystrokes + 1;
+          setTotalKeystrokes(newTotal);
+
+          const expectedPrefix = targetWord.slice(0, value.length);
+          if (value === expectedPrefix) {
+            soundController.playKeyClick();
+            setIsError(false);
+            setTypedInput(value);
+            const newCorrect = correctKeystrokes + 1;
+            setCorrectKeystrokes(newCorrect);
+            setCurrentCombo(prev => {
+              const next = prev + 1;
+              if (next > maxCombo) setMaxCombo(next);
+              return next;
+            });
+
+            if (value === targetWord) {
+              soundController.playWordSuccess();
+
+              // [테스트 모드 지원] 첫 번째 단계 첫 단어만 입력해도 바로 결과/기록 화면으로 이동
+              const TEST_MODE_SINGLE_WORD = true;
+              if (TEST_MODE_SINGLE_WORD && selectedTier.level === 1) {
+                const totalDuration = Math.max(Math.floor((Date.now() - currStartTime) / 1000), 2);
+                handleStageComplete(Math.max(newCorrect, 15), Math.max(newTotal, 15), totalDuration);
+                return;
+              }
+
+              if (wordIdx < stageWords.length - 1) {
+                setWordIdx(prev => prev + 1);
+                setTypedInput('');
+              } else {
+                const totalDuration = Math.max(Math.floor((Date.now() - currStartTime) / 1000), 1);
+                handleStageComplete(newCorrect, newTotal, totalDuration);
+              }
+            }
+          } else {
+            soundController.playTypo();
+            setIsError(true);
+            setCurrentCombo(0);
+            setTimeout(() => setIsError(false), 220);
+          }
+        } else {
+          setTypedInput(value);
+          setIsError(false);
+        }
+      };
+
+      const nextChar = targetWord[typedInput.length] || '';
+      const playerCurrentTier = STAGE_TIERS.find(t => t.level === progress.currentTierLevel) || STAGE_TIERS[0];
+
+      return (
+        <div className="w-full max-w-5xl mx-auto px-4 py-6">
+          {/* Header Status Card */}
+          <div className="bg-white border border-stone-200/90 rounded-3xl p-5 sm:p-6 shadow-xs mb-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center text-xl shadow-sm font-bold">
+                  {playerCurrentTier.badgeIcon}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">CURRENT BOARDING CLASS</span>
+                    <span className="text-xs text-stone-400">·</span>
+                    <span className="text-xs text-stone-500">LEVEL {progress.currentTierLevel} / {STAGE_TIERS.length}</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">{playerCurrentTier.className}</h2>
+                  <p className="text-xs text-stone-500">칭호: <strong className="text-amber-800">{playerCurrentTier.travelerTitle}</strong></p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 bg-stone-50 border border-stone-200/80 rounded-2xl px-5 py-3 shrink-0">
+                <div className="text-center">
+                  <span className="text-[10px] text-stone-400 block font-semibold">총 획득 별</span>
+                  <div className="flex items-center gap-1 text-amber-500 font-bold text-base">
+                    <IconStar className="w-4 h-4 fill-amber-500 text-amber-500" fill={true} />
+                    <span className="font-mono text-stone-900">{totalStars}</span>
+                    <span className="text-xs text-stone-400">/ 15</span>
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-stone-200" />
+                <div className="text-center">
+                  <span className="text-[10px] text-stone-400 block font-semibold">승급 완료율</span>
+                  <span className="font-mono font-bold text-base text-emerald-700">
+                    {Math.round((Object.values(progress.records).filter(r => r.stars > 0).length / STAGE_TIERS.length) * 100)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Level progression steps */}
+            <div className="pt-5">
+              <div className="flex items-center justify-between text-xs font-semibold text-stone-500 mb-2">
+                <span>단계별 승급 여정 (인천 ✈️ 뉴욕)</span>
+                <span>{Object.values(progress.records).filter(r => r.stars > 0).length} / {STAGE_TIERS.length} 클래스 통과</span>
+              </div>
+              <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                {STAGE_TIERS.map(tier => {
+                  const rec = progress.records[tier.level];
+                  const isUnlocked = rec?.unlocked;
+                  const isCurrent = tier.level === selectedTier.level && gameState === 'PLAYING';
+                  const stars = rec?.stars || 0;
+                  return (
+                    <button
+                      key={tier.level}
+                      onClick={() => isUnlocked && startStage(tier)}
+                      disabled={!isUnlocked}
+                      className={`relative p-2.5 sm:p-3 rounded-2xl text-left border transition-all ${
+                        isCurrent
+                          ? 'border-amber-500 bg-amber-50/50 ring-2 ring-amber-500/20'
+                          : isUnlocked
+                          ? 'border-stone-200 bg-white hover:border-amber-300 hover:bg-stone-50/60 cursor-pointer'
+                          : 'border-stone-200/60 bg-stone-100/70 text-stone-400 cursor-not-allowed opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold font-mono">LV.{tier.level}</span>
+                        {isUnlocked ? (
+                          stars > 0 ? (
+                            <div className="flex text-amber-500 text-[10px]">{'★'.repeat(stars)}</div>
+                          ) : (
+                            <span className="text-[10px] text-stone-400">도전</span>
+                          )
+                        ) : (
+                          <IconLock className="w-3 h-3 text-stone-400" />
+                        )}
+                      </div>
+                      <div className="text-[11px] sm:text-xs font-bold text-stone-900 truncate">{tier.seatBadge}</div>
+                      <div className="text-[10px] text-stone-500 truncate mt-0.5">{tier.flag} {tier.airportCode}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 1. STAGE SELECTION VIEW */}
+          {gameState === 'SELECT' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-stone-900">도전할 승급 단계를 선택하세요</h3>
+                  <span className="text-xs text-stone-500">목표 기준(타수 및 정확도)을 만족하면 다음 등급으로 승급됩니다</span>
+                </div>
+                <button
+                  onClick={() => setShowLeaderboard(true)}
+                  className="px-4 py-2.5 text-xs sm:text-sm font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 border border-amber-500/80 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <span>🏆 명예의 전당</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {STAGE_TIERS.map(tier => {
+                  const rec = progress.records[tier.level];
+                  const isUnlocked = rec?.unlocked;
+                  const stars = rec?.stars || 0;
+                  const tierWords = getWordsForTier(tier);
+                  return (
+                    <div
+                      key={tier.level}
+                      className={`bg-white border rounded-3xl p-5 shadow-xs transition-all flex flex-col justify-between ${
+                        isUnlocked ? 'border-stone-200 hover:shadow-md hover:border-amber-400' : 'border-stone-200/60 bg-stone-50/50 opacity-60'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-3 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-base">{tier.badgeIcon}</span>
+                            <span className="font-bold text-amber-900">{tier.seatBadge}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {isUnlocked ? (
+                              <div className="flex text-amber-500 text-xs">
+                                {[1, 2, 3].map(s => (
+                                  <IconStar key={s} className="w-3.5 h-3.5" fill={s <= stars} />
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-stone-400 text-xs flex items-center gap-1">
+                                <IconLock className="w-3 h-3" /> 잠김
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <h4 className="text-base font-bold text-stone-900 mb-1">{tier.className}</h4>
+                        <p className="text-xs text-stone-500 mb-3">{tier.destination} · {tier.summary}</p>
+
+                        <div className="bg-stone-50 rounded-2xl p-3 border border-stone-100 mb-4 space-y-1.5">
+                          <span className="text-[10px] font-semibold text-stone-500 block mb-1">출제 단어 & 한글 뜻:</span>
+                          {tierWords.map(w => (
+                            <div key={w.id} className="flex items-baseline justify-between text-xs">
+                              <strong className="font-mono text-stone-900">{w.word}</strong>
+                              <span className="text-amber-800 font-medium">{w.meaning}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1 border-t border-stone-100">
+                          <span>승급 기준:</span>
+                          <span className="font-mono font-semibold text-stone-700">
+                            {tier.minCpm} CPM 이상 · 정확도 {tier.minAccuracy}% 이상
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-5">
+                        {isUnlocked ? (
+                          <button
+                            onClick={() => startStage(tier)}
+                            className="w-full py-2.5 px-4 text-xs font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-sm transition-transform active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <IconPlay className="w-3.5 h-3.5" />
+                            <span>{stars > 0 ? '승급전 다시 도전' : '승급 심사 시작'}</span>
+                          </button>
+                        ) : (
+                          <div className="w-full py-2.5 px-4 text-xs font-semibold text-stone-400 bg-stone-100 rounded-xl text-center flex items-center justify-center gap-1.5">
+                            <IconLock className="w-3.5 h-3.5" />
+                            <span>이전 단계를 통과해야 해금됩니다</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. ACTIVE TYPING PLAYING VIEW */}
+          {gameState === 'PLAYING' && (
+            <div className="space-y-4" onClick={focusInput}>
+              <div className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{selectedTier.badgeIcon}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-700">LEVEL {selectedTier.level}</span>
+                      <span className="text-xs text-stone-400">·</span>
+                      <span className="text-xs text-stone-600">{selectedTier.destination}</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-stone-900">{selectedTier.className} 승급 심사</h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs">
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl font-medium">
+                    기준: <strong className="font-mono">{selectedTier.minCpm} CPM</strong> · 정확도 <strong className="font-mono">{selectedTier.minAccuracy}%</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGameState('SELECT')}
+                    className="text-stone-400 hover:text-stone-700 text-xs px-2.5 py-1.5 rounded-lg border border-stone-200"
+                  >
+                    단계 목록
+                  </button>
+                </div>
+              </div>
+
+              <div className={`relative bg-white border rounded-3xl p-6 sm:p-10 shadow-sm transition-all duration-150 ${isError ? 'border-rose-400 bg-rose-50/20 animate-shake' : 'border-stone-200'}`}>
+                {/* Test Mode Banner */}
+                {selectedTier.level === 1 && (
+                  <div className="mb-4 p-2.5 px-4 bg-amber-500/10 border border-amber-300/80 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
+                    <span>⚡</span>
+                    <span><strong>[빠른 테스트 지원]</strong> 1단계 첫 단어(<strong className="font-mono underline">help</strong>)만 타이핑하면 즉시 결과 및 기록 화면으로 전환됩니다.</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-xs text-stone-500 mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-semibold text-stone-700">단어 {wordIdx + 1} / {stageWords.length}</span>
+                    <span className="text-stone-300">·</span>
+                    <span className="text-amber-800 font-medium">{currentWord?.category}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); if (currentWord) soundController.speakEnglish(currentWord.word); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 cursor-pointer"
+                    >
+                      <IconVolume2 className="w-3.5 h-3.5 text-amber-600" />
+                      <span>발음 듣기</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); startStage(selectedTier); }}
+                      className="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg"
+                      title="처음부터 다시하기"
+                    >
+                      <IconRotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Target Letters & Korean Meaning Underneath */}
+                <div className="text-center py-6">
+                  <div className="font-mono text-5xl sm:text-7xl font-bold tracking-wider select-none mb-3">
+                    {targetWord.split('').map((char, index) => {
+                      const isTyped = index < typedInput.length;
+                      const isCurrent = index === typedInput.length;
+                      return (
+                        <span
+                          key={index}
+                          className={`inline-block transition-colors duration-100 ${
+                            isTyped ? 'text-emerald-600 font-extrabold' : isCurrent ? 'text-stone-900 border-b-4 border-amber-500 animate-pulse' : 'text-stone-300'
+                          }`}
+                        >
+                          {char}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-stone-900">{currentWord?.meaning}</div>
+                    <div className="text-sm sm:text-base font-medium text-amber-800">{currentWord?.pronunciation}</div>
+                    <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto pt-1">💡 {currentWord?.tip}</p>
+                  </div>
+
+                  <div className="mt-5 p-3 sm:p-4 bg-stone-50 border border-stone-200/80 rounded-2xl max-w-xl mx-auto text-left flex items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); if (currentWord) soundController.speakEnglish(currentWord.exampleSentence); }}
+                      className="p-2 rounded-xl bg-white border border-stone-200 text-stone-600 hover:text-amber-600 shrink-0"
+                    >
+                      <IconVolume2 className="w-4 h-4" />
+                    </button>
+                    <div className="space-y-0.5">
+                      <p className="text-xs sm:text-sm font-semibold text-stone-900">"{currentWord?.exampleSentence}"</p>
+                      <p className="text-xs text-stone-600">"{currentWord?.exampleTranslation}"</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Typing Input */}
+                <div className="max-w-md mx-auto mt-4">
+                  <div className="relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={typedInput}
+                      onChange={handleInputChange}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck="false"
+                      placeholder="영단어를 타이핑하세요..."
+                      className="w-full py-3 px-5 text-center text-lg font-mono font-medium rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-stone-50/50 shadow-inner"
+                    />
+                    {isError && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-rose-600">오타!</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Metrics */}
+                <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-8 pt-6 border-t border-stone-100 text-center">
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">현재 타수</span>
+                    <span className="text-lg sm:text-xl font-bold font-mono text-stone-900">
+                      {startTime ? Math.round(correctKeystrokes / Math.max(elapsedSeconds / 60, 0.05)) : 0}
+                      <span className="text-xs font-normal text-stone-400 ml-1">CPM</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">정확도</span>
+                    <span className="text-lg sm:text-xl font-bold font-mono text-emerald-700">
+                      {totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100}%
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">연속 콤보</span>
+                    <span className="text-lg sm:text-xl font-bold font-mono text-amber-600">{currentCombo}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">경과 시간</span>
+                    <span className="text-lg sm:text-xl font-bold font-mono text-stone-700">{elapsedSeconds}s</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keyboard toggle & Virtual Keyboard */}
+              <div className="flex items-center justify-between text-xs text-stone-500 px-2">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} className="rounded text-amber-600" />
+                  <span>단어 바뀔 때 자동 발음 재생</span>
+                </label>
+                <button onClick={() => setShowKeyboard(prev => !prev)} className="text-stone-500 hover:text-stone-800">
+                  {showKeyboard ? '가상 키보드 접기' : '가상 키보드 보기'}
+                </button>
+              </div>
+
+              {showKeyboard && (
+                <VirtualKeyboard
+                  activeKey={lastKeyPressed}
+                  nextChar={nextChar}
+                  onKeyClick={(key) => {
+                    const nextVal = (typedInput + key).toLowerCase();
+                    handleInputChange({ target: { value: nextVal } });
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {/* 3. PROMOTION RESULT VIEW */}
+          {gameState === 'RESULT' && (
+            <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-xl text-center animate-fade-in">
+              {passedPromotion ? (
+                <div>
+                  <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-3">
+                    {selectedTier.badgeIcon}
+                  </div>
+                  <div className="flex items-center justify-center gap-1 text-amber-500 mb-2">
+                    {[1, 2, 3].map(s => (
+                      <IconStar key={s} className="w-6 h-6" fill={s <= earnedStars} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-bold text-amber-700 uppercase tracking-widest block mb-1">PROMOTION SUCCESSFUL!</span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight mb-2">
+                    🎉 {selectedTier.className} 승급 완료!
+                  </h3>
+                  <p className="text-sm text-stone-600 max-w-md mx-auto mb-6">
+                    축하합니다! 새로운 여행자 칭호 <strong className="text-amber-800">[{selectedTier.travelerTitle}]</strong>를 획득했습니다.
+                  </p>
+
+                  {/* Score boxes */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto mb-6">
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                      <span className="text-[11px] text-stone-500 block">기록 타수</span>
+                      <span className="text-xl font-bold font-mono text-stone-900">{resultCpm}</span>
+                      <span className="text-[10px] text-stone-400 block">기준: {selectedTier.minCpm}</span>
+                    </div>
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                      <span className="text-[11px] text-stone-500 block">기록 정확도</span>
+                      <span className="text-xl font-bold font-mono text-emerald-700">{resultAccuracy}%</span>
+                      <span className="text-[10px] text-stone-400 block">기준: {selectedTier.minAccuracy}%</span>
+                    </div>
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                      <span className="text-[11px] text-stone-500 block">최대 콤보</span>
+                      <span className="text-xl font-bold font-mono text-amber-600">{maxCombo}</span>
+                      <span className="text-[10px] text-stone-400 block">연속 성공</span>
+                    </div>
+                    <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200">
+                      <span className="text-[11px] text-stone-500 block">소요 시간</span>
+                      <span className="text-xl font-bold font-mono text-stone-700">{elapsedSeconds}s</span>
+                      <span className="text-[10px] text-stone-400 block">3단어 완주</span>
+                    </div>
+                  </div>
+
+                  {/* Record Submission Section */}
+                  <GameResultRecordSection
+                    score={`${resultCpm} CPM (정확도 ${resultAccuracy}%)`}
+                    onRestartWithoutSaving={() => startStage(selectedTier)}
+                    nextAction={
+                      selectedTier.level < STAGE_TIERS.length ? (
+                        <button
+                          onClick={() => {
+                            const nextTier = STAGE_TIERS.find(t => t.level === selectedTier.level + 1);
+                            if (nextTier) startStage(nextTier);
+                          }}
+                          className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <span>다음 클래스로 승급하기</span>
+                          <IconArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={onOpenVocab}
+                          className="w-full sm:w-auto px-6 py-3 text-base sm:text-lg font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <span>전체 15단어 여행 사전 복습하기</span>
+                          <IconArrowRight className="w-4 h-4" />
+                        </button>
+                      )
+                    }
+                  />
+                </div>
+              ) : (
+                <div>
+                  <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-3xl mx-auto mb-3">
+                    ⚠️
+                  </div>
+                  <span className="text-xs font-bold text-rose-600 uppercase tracking-widest block mb-1">PROMOTION NOT REACHED</span>
+                  <h3 className="text-2xl font-bold text-stone-900 mb-2">승급 기준에 아쉽게 도달하지 못했습니다</h3>
+                  <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto mb-6">
+                    승급 기준: 타수 <strong>{selectedTier.minCpm} CPM</strong> 이상, 정확도 <strong>{selectedTier.minAccuracy}%</strong> 이상이 필요해요.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-6">
+                    <div className="p-3 rounded-2xl border bg-stone-50 border-stone-200">
+                      <span className="text-[10px] block opacity-80">내 타수</span>
+                      <span className="text-lg font-bold font-mono">{resultCpm} CPM</span>
+                    </div>
+                    <div className="p-3 rounded-2xl border bg-stone-50 border-stone-200">
+                      <span className="text-[10px] block opacity-80">내 정확도</span>
+                      <span className="text-lg font-bold font-mono">{resultAccuracy}%</span>
+                    </div>
+                  </div>
+
+                  <GameResultRecordSection
+                    score={`${resultCpm} CPM (정확도 ${resultAccuracy}%)`}
+                    onRestartWithoutSaving={() => startStage(selectedTier)}
+                    nextAction={
+                      <button
+                        onClick={() => setGameState('SELECT')}
+                        className="w-full sm:w-auto px-5 py-3 text-base sm:text-lg font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors cursor-pointer"
+                      >
+                        단계 목록으로
+                      </button>
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <RecordsModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 9. JOURNEY MODE (15단어 완주 여정)
+    // ==========================================
+    const PassportModal = ({ isOpen, onRestart, onOpenVocab, words, elapsedSeconds, correctKeystrokes, totalKeystrokes, maxCombo, cpm }) => {
+      if (!isOpen) return null;
+      const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+      let grade = 'A';
+      if (accuracy >= 95 && cpm >= 200) grade = 'S';
+      else if (accuracy >= 85) grade = 'A';
+      else grade = 'B';
+
+      const formatTime = (secs) => {
+        const mins = Math.floor(secs / 60);
+        const rem = secs % 60;
+        return `${mins > 0 ? `${mins}분 ` : ''}${rem}초`;
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl bg-[#FCFAF7] border border-amber-900/20 rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-900 text-amber-100 flex items-center justify-center font-bold text-lg shadow-sm">
+                  ✈
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-stone-900">여행 영어 타자 여권 스탬프 완주증</h2>
+                  <p className="text-xs text-stone-500">PASSPORT STAMP CERTIFICATE · 15 TRAVEL WORDS</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-amber-600 font-mono tracking-wider">GRADE {grade}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div className="p-3 bg-white rounded-xl border border-stone-200 text-center">
+                <span className="text-xs text-stone-500 block">타수 (CPM)</span>
+                <span className="text-xl font-bold font-mono text-stone-900">{cpm}</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-stone-200 text-center">
+                <span className="text-xs text-stone-500 block">정확도</span>
+                <span className="text-xl font-bold font-mono text-emerald-700">{accuracy}%</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-stone-200 text-center">
+                <span className="text-xs text-stone-500 block">소요 시간</span>
+                <span className="text-xl font-bold font-mono text-stone-900">{formatTime(elapsedSeconds)}</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-stone-200 text-center">
+                <span className="text-xs text-stone-500 block">최대 콤보</span>
+                <span className="text-xl font-bold font-mono text-amber-700">{maxCombo}</span>
+              </div>
+            </div>
+
+            <GameResultRecordSection
+              score={`${cpm} CPM (정확도 ${accuracy}%)`}
+              onRestartWithoutSaving={onRestart}
+              nextAction={
+                <button
+                  onClick={onOpenVocab}
+                  className="w-full sm:w-auto px-5 py-3 text-base sm:text-lg font-bold text-stone-700 bg-white border-2 border-stone-300 hover:bg-stone-50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <IconBookOpen className="w-5 h-5 text-stone-500" />
+                  <span>15단어 뜻 & 발음 복습하기</span>
+                </button>
+              }
+            />
+          </div>
+        </div>
+      );
+    };
+
+    const JourneyMode = ({ onOpenVocab }) => {
+      const [wordIndex, setWordIndex] = useState(0);
+      const [typedInput, setTypedInput] = useState('');
+      const [isError, setIsError] = useState(false);
+      const [lastKeyPressed, setLastKeyPressed] = useState('');
+
+      const [correctKeystrokes, setCorrectKeystrokes] = useState(0);
+      const [totalKeystrokes, setTotalKeystrokes] = useState(0);
+      const [currentCombo, setCurrentCombo] = useState(0);
+      const [maxCombo, setMaxCombo] = useState(0);
+      const [startTime, setStartTime] = useState(null);
+      const [elapsedSeconds, setElapsedSeconds] = useState(0);
+      const [isCompleted, setIsCompleted] = useState(false);
+
+      const [autoSpeak, setAutoSpeak] = useState(true);
+      const [showKeyboard, setShowKeyboard] = useState(true);
+
+      const inputRef = useRef(null);
+      const timerRef = useRef(null);
+
+      const currentWord = TRAVEL_WORDS[wordIndex] || TRAVEL_WORDS[0];
+      const targetWord = currentWord.word.toLowerCase();
+
+      useEffect(() => {
+        if (autoSpeak && !isCompleted) soundController.speakEnglish(currentWord.word);
+      }, [wordIndex, autoSpeak, currentWord.word, isCompleted]);
+
+      useEffect(() => {
+        if (startTime && !isCompleted) {
+          timerRef.current = window.setInterval(() => {
+            setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+          }, 500);
+        }
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+      }, [startTime, isCompleted]);
+
+      const focusInput = () => inputRef.current?.focus();
+
+      useEffect(() => { focusInput(); }, [wordIndex, isCompleted]);
+
+      const handleGameComplete = useCallback(() => {
+        setIsCompleted(true);
+        soundController.playVictory();
+        try { confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } }); } catch(e) {}
+      }, []);
+
+      const resetGame = () => {
+        setWordIndex(0);
+        setTypedInput('');
+        setIsError(false);
+        setCorrectKeystrokes(0);
+        setTotalKeystrokes(0);
+        setCurrentCombo(0);
+        setMaxCombo(0);
+        setStartTime(null);
+        setElapsedSeconds(0);
+        setIsCompleted(false);
+        focusInput();
+      };
+
+      const handleInputChange = (e) => {
+        const value = e.target.value.toLowerCase();
+        if (!startTime) setStartTime(Date.now());
+
+        if (value.length > typedInput.length) {
+          const addedChar = value[value.length - 1];
+          setLastKeyPressed(addedChar);
+          setTotalKeystrokes(prev => prev + 1);
+
+          const expectedPrefix = targetWord.slice(0, value.length);
+          if (value === expectedPrefix) {
+            soundController.playKeyClick();
+            setIsError(false);
+            setTypedInput(value);
+            setCorrectKeystrokes(prev => prev + 1);
+            setCurrentCombo(prev => {
+              const next = prev + 1;
+              if (next > maxCombo) setMaxCombo(next);
+              return next;
+            });
+
+            if (value === targetWord) {
+              soundController.playWordSuccess();
+
+              // 빠른 테스트 지원: 첫 단어 완료 시 완주
+              const TEST_MODE_SINGLE_WORD = true;
+              if (TEST_MODE_SINGLE_WORD && wordIndex === 0) {
+                handleGameComplete();
+                return;
+              }
+
+              if (wordIndex < TRAVEL_WORDS.length - 1) {
+                setWordIndex(prev => prev + 1);
+                setTypedInput('');
+              } else {
+                handleGameComplete();
+              }
+            }
+          } else {
+            soundController.playTypo();
+            setIsError(true);
+            setCurrentCombo(0);
+            setTimeout(() => setIsError(false), 250);
+          }
+        } else {
+          setTypedInput(value);
+          setIsError(false);
+        }
+      };
+
+      const minutes = Math.max(elapsedSeconds / 60, 0.05);
+      const liveCpm = startTime ? Math.round(correctKeystrokes / minutes) : 0;
+      const liveAccuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+      const nextChar = targetWord[typedInput.length] || '';
+
+      const flightStops = [
+        { code: 'ICN', city: '서울', targetIndex: 0 },
+        { code: 'NRT', city: '도쿄', targetIndex: 3 },
+        { code: 'BKK', city: '방콕', targetIndex: 7 },
+        { code: 'CDG', city: '파리', targetIndex: 11 },
+        { code: 'JFK', city: '뉴욕', targetIndex: 14 }
+      ];
+
+      return (
+        <div className="w-full max-w-4xl mx-auto px-4 py-6" onClick={focusInput}>
+          {/* Tracker HUD */}
+          <div className="bg-white border border-stone-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-6">
+            <div className="flex items-center justify-between text-xs text-stone-500 mb-3">
+              <span className="font-semibold text-stone-800">해외여행 비행 루트 · 단어 {wordIndex + 1} / {TRAVEL_WORDS.length}</span>
+              <span className="font-mono">{Math.round(((wordIndex + (typedInput.length / targetWord.length)) / TRAVEL_WORDS.length) * 100)}% 완료</span>
+            </div>
+            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-300"
+                style={{ width: `${((wordIndex + (typedInput.length / targetWord.length)) / TRAVEL_WORDS.length) * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              {flightStops.map(stop => (
+                <div key={stop.code} className="flex flex-col items-center">
+                  <span className={`font-mono text-xs ${wordIndex >= stop.targetIndex ? 'font-bold text-amber-700' : 'text-stone-400'}`}>{stop.code}</span>
+                  <span className="text-[10px] text-stone-400">{stop.city}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Typing Card */}
+          <div className={`relative bg-white border rounded-3xl p-6 sm:p-10 shadow-sm transition-all duration-150 ${isError ? 'border-rose-400 bg-rose-50/20 animate-shake' : 'border-stone-200'}`}>
+            <div className="flex items-center justify-between text-xs text-stone-500 mb-6">
+              <span className="font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">{currentWord.category}</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); soundController.speakEnglish(currentWord.word); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 cursor-pointer"
+                >
+                  <IconVolume2 className="w-3.5 h-3.5 text-amber-600" />
+                  <span>발음 듣기</span>
+                </button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); resetGame(); }} className="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
+                  <IconRotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="text-center py-4 sm:py-6">
+              <div className="font-mono text-4xl sm:text-6xl md:text-7xl font-bold tracking-wider select-none mb-3">
+                {targetWord.split('').map((char, index) => (
+                  <span
+                    key={index}
+                    className={`inline-block transition-colors duration-100 ${
+                      index < typedInput.length ? 'text-emerald-600 font-extrabold' : index === typedInput.length ? 'text-stone-900 border-b-4 border-amber-500 animate-pulse' : 'text-stone-300'
+                    }`}
+                  >
+                    {char}
+                  </span>
+                ))}
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="text-2xl sm:text-3xl font-extrabold text-stone-900">{currentWord.meaning}</div>
+                <div className="text-sm sm:text-base font-medium text-amber-800">{currentWord.pronunciation}</div>
+                <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto pt-1">💡 {currentWord.situation}</p>
+              </div>
+
+              <div className="mt-5 p-3 sm:p-4 bg-stone-50 border border-stone-200/80 rounded-2xl max-w-xl mx-auto text-left flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); soundController.speakEnglish(currentWord.exampleSentence); }}
+                  className="p-2 rounded-xl bg-white border border-stone-200 text-stone-600 hover:text-amber-600 shrink-0"
+                >
+                  <IconVolume2 className="w-4 h-4" />
+                </button>
+                <div className="space-y-0.5">
+                  <p className="text-xs sm:text-sm font-semibold text-stone-900">"{currentWord.exampleSentence}"</p>
+                  <p className="text-xs text-stone-600">"{currentWord.exampleTranslation}"</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-md mx-auto mt-4">
+              <div className="relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={typedInput}
+                  onChange={handleInputChange}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck="false"
+                  placeholder="여기에 영단어를 타이핑하세요..."
+                  className="w-full py-3 px-5 text-center text-lg font-mono font-medium rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-stone-50/50 shadow-inner"
+                />
+                {isError && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-rose-600">오타!</span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-8 pt-6 border-t border-stone-100 text-center">
+              <div><span className="text-[11px] text-stone-500 block">타수 (CPM)</span><span className="text-lg sm:text-xl font-bold font-mono text-stone-900">{liveCpm}</span></div>
+              <div><span className="text-[11px] text-stone-500 block">정확도</span><span className="text-lg sm:text-xl font-bold font-mono text-emerald-700">{liveAccuracy}%</span></div>
+              <div><span className="text-[11px] text-stone-500 block">연속 콤보</span><span className="text-lg sm:text-xl font-bold font-mono text-amber-600">{currentCombo}</span></div>
+              <div><span className="text-[11px] text-stone-500 block">경과 시간</span><span className="text-lg sm:text-xl font-bold font-mono text-stone-700">{elapsedSeconds}s</span></div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-stone-500 px-2 my-4">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} className="rounded text-amber-600" />
+              <span>단어 전환 시 자동 발음</span>
+            </label>
+            <button onClick={() => setShowKeyboard(prev => !prev)} className="text-stone-500 hover:text-stone-800">
+              {showKeyboard ? '가상 키보드 숨기기' : '가상 키보드 보기'}
+            </button>
+          </div>
+
+          {showKeyboard && (
+            <VirtualKeyboard
+              activeKey={lastKeyPressed}
+              nextChar={nextChar}
+              onKeyClick={(key) => handleInputChange({ target: { value: (typedInput + key).toLowerCase() } })}
+            />
+          )}
+
+          <PassportModal
+            isOpen={isCompleted}
+            onClose={() => setIsCompleted(false)}
+            onRestart={resetGame}
+            onOpenVocab={onOpenVocab}
+            words={TRAVEL_WORDS}
+            elapsedSeconds={elapsedSeconds}
+            totalKeystrokes={totalKeystrokes}
+            correctKeystrokes={correctKeystrokes}
+            maxCombo={maxCombo}
+            cpm={liveCpm}
+          />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 10. TIME ATTACK MODE (60초 러시)
+    // ==========================================
+    const TimeAttackMode = () => {
+      const [gameState, setGameState] = useState('IDLE');
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [timeLeft, setTimeLeft] = useState(60);
+      const [wordList, setWordList] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [typedInput, setTypedInput] = useState('');
+      const [isError, setIsError] = useState(false);
+
+      const [completedWordsCount, setCompletedWordsCount] = useState(0);
+      const [correctKeystrokes, setCorrectKeystrokes] = useState(0);
+      const [totalKeystrokes, setTotalKeystrokes] = useState(0);
+      const [currentCombo, setCurrentCombo] = useState(0);
+      const [maxCombo, setMaxCombo] = useState(0);
+      const [highScore, setHighScore] = useState(() => Number(localStorage.getItem('timeattack_high_score') || '0'));
+
+      const inputRef = useRef(null);
+      const timerRef = useRef(null);
+
+      const focusInput = () => inputRef.current?.focus();
+      const getShuffledWords = () => [...TRAVEL_WORDS].sort(() => Math.random() - 0.5);
+      const currentWord = wordList[currentIndex] || TRAVEL_WORDS[0];
+      const targetWord = currentWord.word.toLowerCase();
+
+      const startGame = () => {
+        const shuffled = getShuffledWords();
+        setWordList(shuffled);
+        setCurrentIndex(0);
+        setTypedInput('');
+        setIsError(false);
+        setTimeLeft(60);
+        setCompletedWordsCount(0);
+        setCorrectKeystrokes(0);
+        setTotalKeystrokes(0);
+        setCurrentCombo(0);
+        setMaxCombo(0);
+        setGameState('PLAYING');
+
+        setTimeout(() => {
+          focusInput();
+          soundController.speakEnglish(shuffled[0].word);
+        }, 50);
+      };
+
+      useEffect(() => {
+        if (gameState !== 'PLAYING') return;
+        timerRef.current = window.setInterval(() => {
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              setGameState('FINISHED');
+              soundController.playVictory();
+              try { confetti({ particleCount: 70, spread: 60 }); } catch(e) {}
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+      }, [gameState]);
+
+      useEffect(() => {
+        if (completedWordsCount > highScore) {
+          setHighScore(completedWordsCount);
+          try { localStorage.setItem('timeattack_high_score', String(completedWordsCount)); } catch(e) {}
+        }
+      }, [completedWordsCount, highScore]);
+
+      const handleInputChange = (e) => {
+        if (gameState !== 'PLAYING') return;
+        const value = e.target.value.toLowerCase();
+        if (value.length > typedInput.length) {
+          setTotalKeystrokes(prev => prev + 1);
+          const expectedPrefix = targetWord.slice(0, value.length);
+          if (value === expectedPrefix) {
+            soundController.playKeyClick();
+            setIsError(false);
+            setTypedInput(value);
+            setCorrectKeystrokes(prev => prev + 1);
+            setCurrentCombo(prev => {
+              const next = prev + 1;
+              if (next > maxCombo) setMaxCombo(next);
+              return next;
+            });
+            if (value === targetWord) {
+              soundController.playWordSuccess();
+              setCompletedWordsCount(prev => prev + 1);
+              setTypedInput('');
+              if (currentIndex < wordList.length - 1) {
+                const nextIdx = currentIndex + 1;
+                setCurrentIndex(nextIdx);
+                soundController.speakEnglish(wordList[nextIdx].word);
+              } else {
+                const fresh = getShuffledWords();
+                setWordList(fresh);
+                setCurrentIndex(0);
+                soundController.speakEnglish(fresh[0].word);
+              }
+            }
+          } else {
+            soundController.playTypo();
+            setIsError(true);
+            setCurrentCombo(0);
+            setTimeout(() => setIsError(false), 200);
+          }
+        } else {
+          setTypedInput(value);
+          setIsError(false);
+        }
+      };
+
+      const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+      const elapsedMinutes = (60 - timeLeft) / 60 || 0.05;
+      const cpm = Math.round(correctKeystrokes / Math.max(elapsedMinutes, 0.05));
+
+      return (
+        <div className="w-full max-w-4xl mx-auto px-4 py-6" onClick={focusInput}>
+          <div className="bg-white border border-stone-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-xs text-stone-500">모드</span>
+              <h2 className="text-base font-bold text-stone-900">60초 공항 러시 (타임 어택)</h2>
+            </div>
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-[10px] text-stone-500 block">남은 시간</span>
+                <span className={`text-xl font-black font-mono ${timeLeft <= 10 ? 'text-rose-600' : 'text-stone-900'}`}>{timeLeft}s</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-stone-500 block">완료 단어</span>
+                <span className="text-xl font-bold font-mono text-amber-600">{completedWordsCount}개</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-stone-500 block">최고 기록</span>
+                <span className="text-xl font-bold font-mono text-stone-700">{highScore}개</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative bg-white border border-stone-200 rounded-3xl p-6 sm:p-10 shadow-sm min-h-[380px] flex flex-col justify-center">
+            {gameState === 'IDLE' && (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center text-3xl mx-auto mb-4">⏱️</div>
+                <h3 className="text-2xl font-bold text-stone-900 mb-2">60초 동안 몇 개나 칠 수 있을까요?</h3>
+                <p className="text-sm text-stone-600 max-w-md mx-auto mb-6 leading-relaxed">
+                  해외여행 필수 쉬운 영어 단어 15개를 1분 동안 최대한 빠르고 정확하게 입력해보세요!
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button onClick={startGame} className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-sm transition-transform active:scale-95 inline-flex items-center justify-center gap-2 cursor-pointer">
+                    <IconPlay className="w-4 h-4 fill-white" />
+                    <span>60초 타임 어택 시작</span>
+                  </button>
+                  <button onClick={() => setShowLeaderboard(true)} className="w-full sm:w-auto px-5 py-3 text-sm font-bold text-amber-950 bg-amber-300 hover:bg-amber-400 border border-amber-400 rounded-xl shadow-xs transition-transform active:scale-95 inline-flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>🏆 명예의 전당</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {gameState === 'FINISHED' && (
+              <div className="text-center py-6 animate-fade-in">
+                <IconTrophy className="w-14 h-14 text-amber-500 mx-auto mb-2" />
+                <h3 className="text-2xl font-black text-stone-900 mb-1">시간 종료!</h3>
+                <p className="text-xs text-stone-500 mb-6">60초 동안 놀라운 여행 타자 실력을 보여주셨어요!</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl mx-auto mb-6">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <span className="text-xs text-stone-500 block">완료 단어</span>
+                    <span className="text-2xl font-black font-mono text-amber-600">{completedWordsCount}개</span>
+                  </div>
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <span className="text-xs text-stone-500 block">타수 (CPM)</span>
+                    <span className="text-2xl font-black font-mono text-stone-900">{cpm}</span>
+                  </div>
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <span className="text-xs text-stone-500 block">정확도</span>
+                    <span className="text-2xl font-black font-mono text-emerald-700">{accuracy}%</span>
+                  </div>
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <span className="text-xs text-stone-500 block">최대 콤보</span>
+                    <span className="text-2xl font-black font-mono text-amber-700">{maxCombo}</span>
+                  </div>
+                </div>
+
+                <GameResultRecordSection
+                  score={`${completedWordsCount}개 단어 (${cpm} CPM)`}
+                  onRestartWithoutSaving={startGame}
+                />
+              </div>
+            )}
+
+            {gameState === 'PLAYING' && (
+              <div className="text-center">
+                <div className="font-mono text-4xl sm:text-6xl font-bold tracking-wider select-none mb-3">
+                  {targetWord.split('').map((char, index) => (
+                    <span
+                      key={index}
+                      className={`inline-block transition-colors duration-100 ${
+                        index < typedInput.length ? 'text-emerald-600 font-extrabold' : index === typedInput.length ? 'text-stone-900 border-b-4 border-amber-500 animate-pulse' : 'text-stone-300'
+                      }`}
+                    >
+                      {char}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-1 mb-6">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-stone-900">{currentWord.meaning}</div>
+                  <div className="text-sm font-medium text-amber-800">{currentWord.pronunciation}</div>
+                </div>
+
+                <div className="max-w-md mx-auto">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={typedInput}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck="false"
+                    placeholder="단어를 빠르게 입력하세요..."
+                    className={`w-full py-3 px-5 text-center text-lg font-mono font-medium rounded-xl border focus:outline-none focus:ring-2 focus:ring-amber-500 bg-stone-50/50 ${
+                      isError ? 'border-rose-400 bg-rose-50/20' : 'border-stone-300'
+                    }`}
+                  />
+                </div>
+
+                <div className="flex items-center justify-center gap-6 mt-6 text-xs text-stone-500 font-mono">
+                  <span>연속 콤보: <strong className="text-amber-600">{currentCombo}</strong></span>
+                  <span>·</span>
+                  <span>현재 타수: <strong className="text-stone-800">{cpm} CPM</strong></span>
+                  <span>·</span>
+                  <span>정확도: <strong className="text-emerald-700">{accuracy}%</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <RecordsModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 11. SKY DROP MODE (스카이 드롭)
+    // ==========================================
+    const SkyDropMode = () => {
+      const [gameState, setGameState] = useState('IDLE');
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [fallingWords, setFallingWords] = useState([]);
+      const [inputVal, setInputVal] = useState('');
+      const [score, setScore] = useState(0);
+      const [lives, setLives] = useState(3);
+      const [wordsCleared, setWordsCleared] = useState(0);
+      const [highScore, setHighScore] = useState(() => Number(localStorage.getItem('skydrop_high_score') || '0'));
+
+      const inputRef = useRef(null);
+      const nextSpawnTime = useRef(0);
+      const frameRef = useRef(null);
+
+      const focusInput = () => inputRef.current?.focus();
+
+      const startGame = () => {
+        setGameState('PLAYING');
+        setFallingWords([]);
+        setInputVal('');
+        setScore(0);
+        setLives(3);
+        setWordsCleared(0);
+        nextSpawnTime.current = Date.now() + 500;
+        setTimeout(focusInput, 50);
+      };
+
+      const spawnWord = useCallback(() => {
+        const randomWord = TRAVEL_WORDS[Math.floor(Math.random() * TRAVEL_WORDS.length)];
+        const newWord = {
+          id: `${randomWord.id}-${Date.now()}-${Math.random()}`,
+          data: randomWord,
+          x: 10 + Math.random() * 70,
+          y: 0,
+          speed: 0.18 + Math.min(wordsCleared * 0.015, 0.35)
+        };
+        setFallingWords(prev => [...prev, newWord]);
+      }, [wordsCleared]);
+
+      useEffect(() => {
+        if (gameState !== 'PLAYING') return;
+        let lastTick = Date.now();
+
+        const loop = () => {
+          const now = Date.now();
+          const delta = (now - lastTick) / 16;
+          lastTick = now;
+
+          if (now > nextSpawnTime.current && fallingWords.length < 3) {
+            spawnWord();
+            nextSpawnTime.current = now + Math.max(2200 - wordsCleared * 40, 1400);
+          }
+
+          setFallingWords(prev => {
+            const nextWords = [];
+            let lostLife = false;
+            for (const item of prev) {
+              const nextY = item.y + item.speed * delta;
+              if (nextY >= 82) {
+                lostLife = true;
+                soundController.playTypo();
+              } else {
+                nextWords.push({ ...item, y: nextY });
+              }
+            }
+            if (lostLife) {
+              setLives(l => {
+                const nextL = l - 1;
+                if (nextL <= 0) {
+                  setGameState('GAMEOVER');
+                  soundController.playVictory();
+                }
+                return nextL;
+              });
+            }
+            return nextWords;
+          });
+
+          frameRef.current = requestAnimationFrame(loop);
+        };
+
+        frameRef.current = requestAnimationFrame(loop);
+        return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+      }, [gameState, fallingWords.length, spawnWord, wordsCleared]);
+
+      useEffect(() => {
+        if (score > highScore) {
+          setHighScore(score);
+          try { localStorage.setItem('skydrop_high_score', String(score)); } catch(e) {}
+        }
+      }, [score, highScore]);
+
+      const handleInputChange = (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        setInputVal(val);
+        const matched = fallingWords.find(item => item.data.word.toLowerCase() === val);
+        if (matched) {
+          soundController.playWordSuccess();
+          soundController.speakEnglish(matched.data.word);
+          setFallingWords(prev => prev.filter(item => item.id !== matched.id));
+          setScore(s => s + 100 + Math.round((82 - matched.y) * 2));
+          setWordsCleared(w => w + 1);
+          setInputVal('');
+        }
+      };
+
+      return (
+        <div className="w-full max-w-4xl mx-auto px-4 py-6" onClick={focusInput}>
+          <div className="bg-white border border-stone-200/90 rounded-2xl p-4 sm:p-5 shadow-xs mb-4 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-stone-500">모드</span>
+              <h2 className="text-base font-bold text-stone-900">스카이 드롭 (하늘에서 내리는 여행 단어)</h2>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <span className="text-xs text-stone-500 block">점수</span>
+                <span className="text-lg font-bold font-mono text-amber-600">{score}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-stone-500 block">최고 기록</span>
+                <span className="text-lg font-bold font-mono text-stone-700">{highScore}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3].map(heartIdx => (
+                  <IconHeart key={heartIdx} className={`w-5 h-5 ${heartIdx <= lives ? 'text-rose-500 fill-rose-500' : 'text-stone-300'}`} fill={heartIdx <= lives} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="relative w-full h-[460px] bg-gradient-to-b from-sky-50 via-sky-100/30 to-amber-50/40 border border-stone-200 rounded-3xl overflow-hidden shadow-inner">
+            <div className="absolute top-6 left-12 text-sky-200 text-5xl opacity-40 select-none">☁</div>
+            <div className="absolute top-16 right-20 text-sky-200 text-6xl opacity-30 select-none">☁</div>
+
+            {gameState === 'IDLE' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-white/70 backdrop-blur-2xs z-20">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-700 flex items-center justify-center text-3xl mb-4">🧳</div>
+                <h3 className="text-2xl font-bold text-stone-900 mb-2">스카이 드롭 여행 타자</h3>
+                <p className="text-sm text-stone-600 max-w-md mb-6 leading-relaxed">
+                  하늘에서 수하물 태그처럼 내려오는 15개의 여행 영단어를 바닥에 닿기 전에 입력하세요!
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button onClick={startGame} className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                    <IconPlay className="w-4 h-4 fill-white" />
+                    <span>게임 시작하기</span>
+                  </button>
+                  <button onClick={() => setShowLeaderboard(true)} className="w-full sm:w-auto px-5 py-3 text-sm font-bold text-amber-950 bg-amber-300 hover:bg-amber-400 border border-amber-400 rounded-xl shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>🏆 명예의 전당</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {gameState === 'GAMEOVER' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-white/90 backdrop-blur-xs z-20 overflow-y-auto animate-fade-in">
+                <IconTrophy className="w-12 h-12 text-amber-500 mb-1 shrink-0" />
+                <h3 className="text-2xl font-black text-stone-900 mb-0.5">여행 완료!</h3>
+                <p className="text-xs text-stone-500 mb-2">하늘에서 내려온 단어들을 멋지게 받아쳤어요</p>
+
+                <div className="flex items-center gap-6 my-2 p-3 bg-stone-50 rounded-2xl border border-stone-200 shrink-0">
+                  <div>
+                    <span className="text-xs text-stone-500 block">최종 점수</span>
+                    <span className="text-2xl font-black font-mono text-amber-600">{score}점</span>
+                  </div>
+                  <div className="border-l border-stone-200 pl-6">
+                    <span className="text-xs text-stone-500 block">정복한 단어</span>
+                    <span className="text-2xl font-black font-mono text-stone-900">{wordsCleared}개</span>
+                  </div>
+                </div>
+
+                <GameResultRecordSection
+                  score={`${score}점 (${wordsCleared}개 클리어)`}
+                  onRestartWithoutSaving={startGame}
+                />
+              </div>
+            )}
+
+            {fallingWords.map(item => (
+              <div
+                key={item.id}
+                style={{ left: `${item.x}%`, top: `${item.y}%`, transform: 'translateX(-50%)' }}
+                className="absolute transition-transform flex flex-col items-center select-none"
+              >
+                <div className="bg-white/95 border-2 border-amber-600/60 rounded-2xl p-2.5 px-4 shadow-md backdrop-blur-xs flex flex-col items-center min-w-[130px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs">🏷️</span>
+                    <span className="font-mono text-lg font-black text-stone-900 tracking-wide uppercase">{item.data.word}</span>
+                  </div>
+                  <div className="text-xs font-bold text-amber-800 mt-0.5">{item.data.meaning}</div>
+                  <div className="text-[10px] text-stone-400">{item.data.pronunciation}</div>
+                </div>
+                <div className="w-0.5 h-3 bg-amber-400/50 -order-1" />
+              </div>
+            ))}
+
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-stone-800 border-t-4 border-amber-500 flex items-center justify-between px-6 text-stone-400 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-stone-200 font-semibold tracking-wider">AIRPORT LUGGAGE BELT</span>
+              </div>
+              <div className="text-stone-400 hidden sm:inline">단어가 컨베이어 벨트에 닿기 전에 입력하세요!</div>
+            </div>
+          </div>
+
+          <div className="mt-4 max-w-md mx-auto">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputVal}
+              onChange={handleInputChange}
+              disabled={gameState !== 'PLAYING'}
+              placeholder={gameState === 'PLAYING' ? "내려오는 단어를 입력하고 자동 매치..." : "게임을 시작하면 활성화됩니다"}
+              className="w-full py-3 px-5 text-center text-lg font-mono font-medium rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white shadow-xs disabled:bg-stone-100 disabled:text-stone-400"
+            />
+          </div>
+
+          <RecordsModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 12. WORD LIST MODE (단어 사전 & 발음)
+    // ==========================================
+    const WordListMode = ({ onStartJourney }) => {
+      const [selectedCategory, setSelectedCategory] = useState('전체');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [practiceStates, setPracticeStates] = useState({});
+      const [successStates, setSuccessStates] = useState({});
+
+      const categories = ['전체', '공항/입국', '교통/이동', '숙소/휴식', '식당/카페', '쇼핑/계산', '안전/편의'];
+
+      const filteredWords = TRAVEL_WORDS.filter(item => {
+        const matchCategory = selectedCategory === '전체' || item.category === selectedCategory;
+        const matchQuery =
+          item.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.meaning.includes(searchQuery) ||
+          item.pronunciation.includes(searchQuery);
+        return matchCategory && matchQuery;
+      });
+
+      const handlePracticeChange = (id, target, val) => {
+        const input = val.toLowerCase();
+        setPracticeStates(prev => ({ ...prev, [id]: input }));
+        if (input === target.toLowerCase()) {
+          soundController.playWordSuccess();
+          setSuccessStates(prev => ({ ...prev, [id]: true }));
+          setTimeout(() => {
+            setSuccessStates(prev => ({ ...prev, [id]: false }));
+            setPracticeStates(prev => ({ ...prev, [id]: '' }));
+          }, 1200);
+        } else {
+          soundController.playKeyClick();
+        }
+      };
+
+      return (
+        <div className="w-full max-w-5xl mx-auto px-4 py-6">
+          <div className="relative overflow-hidden bg-gradient-to-r from-amber-900 to-stone-900 text-white rounded-3xl p-6 sm:p-8 mb-6 shadow-md">
+            <div className="relative z-10 max-w-2xl">
+              <span className="text-amber-300 text-xs font-semibold tracking-wider uppercase block mb-1">TRAVEL VOCABULARY GUIDE</span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">해외여행 필수 쉬운 영어 단어 15선</h2>
+              <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mb-4">
+                출입국 심사부터 호텔 체크인, 식당 주문, 길 찾기까지! 각 단어의 정확한 한글 뜻과 원어민 발음, 실전 여행 예문을 익혀보세요.
+              </p>
+              <button
+                onClick={onStartJourney}
+                className="px-5 py-2.5 text-xs font-semibold bg-amber-500 text-stone-950 rounded-xl hover:bg-amber-400 transition-colors inline-flex items-center gap-1.5 shadow-sm"
+              >
+                <span>15단어 완주 타자 게임 시작</span>
+                <IconArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="absolute -right-10 -bottom-10 text-white/5 text-[180px] font-black select-none pointer-events-none">✈</div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-xl overflow-x-auto max-w-full">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    selectedCategory === cat ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full sm:w-64">
+              <IconSearch className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="단어 또는 뜻 검색..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredWords.map(item => {
+              const isSuccess = successStates[item.id];
+              const practiceVal = practiceStates[item.id] || '';
+              return (
+                <div
+                  key={item.id}
+                  className={`bg-white border rounded-2xl p-5 shadow-xs transition-all hover:shadow-md flex flex-col justify-between ${
+                    isSuccess ? 'border-emerald-500 bg-emerald-50/20 ring-2 ring-emerald-500/20' : 'border-stone-200'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-stone-400 mb-2">
+                      <span className="font-mono font-medium">#{item.id} · {item.category}</span>
+                      <button
+                        onClick={() => soundController.speakEnglish(item.word)}
+                        className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                        title="단어 발음 듣기"
+                      >
+                        <IconVolume2 className="w-3.5 h-3.5 text-amber-600" />
+                      </button>
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="text-2xl font-bold font-mono text-stone-900 tracking-wide uppercase">{item.word}</div>
+                      <div className="text-base font-extrabold text-amber-900 mt-0.5">{item.meaning}</div>
+                      <div className="text-xs text-stone-500 mt-0.5">{item.pronunciation}</div>
+                    </div>
+
+                    <div className="p-2.5 bg-stone-50 rounded-xl text-xs text-stone-600 mb-3 leading-relaxed">
+                      <span className="font-semibold text-stone-800">💡 여행 팁: </span>{item.tip}
+                    </div>
+
+                    <div className="border-t border-stone-100 pt-2.5 text-xs space-y-1">
+                      <div className="flex items-center justify-between text-stone-800 font-medium">
+                        <span className="italic">"{item.exampleSentence}"</span>
+                        <button onClick={() => soundController.speakEnglish(item.exampleSentence)} className="p-1 text-stone-400 hover:text-amber-600">
+                          <IconVolume2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="text-stone-500">"{item.exampleTranslation}"</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-stone-100">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={practiceVal}
+                        onChange={(e) => handlePracticeChange(item.id, item.word, e.target.value)}
+                        placeholder={`타이핑 연습: ${item.word}`}
+                        className={`w-full py-1.5 px-3 text-xs font-mono rounded-lg border focus:outline-none transition-colors ${
+                          isSuccess ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-stone-200 bg-stone-50/50 focus:border-amber-500'
+                        }`}
+                      />
+                      {isSuccess && (
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-600 flex items-center gap-1 text-[11px] font-bold">
+                          <IconCheck className="w-3 h-3" /> 완성!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // 13. TOP HEADER COMPONENT
+    // ==========================================
+    const Header = ({ currentTab, onSelectTab, soundEnabled, onToggleSound, bgmEnabled, onToggleBgm, onOpenRecords }) => (
+      <header className="flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 py-4 border-b border-stone-200 bg-white/95 backdrop-blur-sm sticky top-0 z-30">
+        <div onClick={() => onSelectTab('promotion')} className="flex items-center gap-2.5 cursor-pointer whitespace-nowrap shrink-0 group">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center transition-transform group-hover:scale-105">
+            <IconPlane className="w-5 h-5 text-amber-600 rotate-[-20deg]" />
+          </div>
+          <span className="text-lg font-bold tracking-tight text-stone-900 whitespace-nowrap">여행 영어 타자</span>
+        </div>
+
+        <nav className="flex items-center gap-1 sm:gap-1.5 p-1 bg-stone-100/90 rounded-xl overflow-x-auto">
+          {[
+            { id: 'promotion', label: '단계별 승급' },
+            { id: 'journey', label: '15단어 완주' },
+            { id: 'timeattack', label: '60초 러시' },
+            { id: 'skydrop', label: '스카이 드롭' },
+            { id: 'vocab', label: '단어 사전 & 발음' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => onSelectTab(tab.id)}
+              className={`px-3 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 ${
+                currentTab === tab.id ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={onOpenRecords}
+            title="명예의 전당 (저장된 기록 보기)"
+            className="px-3 py-2 text-xs font-semibold rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100/80 text-amber-900 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <IconTrophy className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline">명예의 전당</span>
+          </button>
+
+          {/* Public MP3 BGM Toggle Button */}
+          <button
+            onClick={onToggleBgm}
+            title={bgmEnabled ? '배경음악 끄기' : '배경음악 켜기 (public/bgm.mp3)'}
+            className={`px-3 py-2 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              bgmEnabled ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-xs' : 'border-stone-200 bg-stone-100 text-stone-400 hover:bg-stone-200'
+            }`}
+          >
+            <IconMusic className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{bgmEnabled ? 'BGM 켬' : 'BGM 끔'}</span>
+          </button>
+
+          <button
+            onClick={onToggleSound}
+            title={soundEnabled ? '효과음 끄기' : '효과음 켜기'}
+            className={`px-3.5 py-2 text-xs font-medium rounded-lg border transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
+              soundEnabled ? 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50' : 'border-stone-200 bg-stone-100 text-stone-400 hover:bg-stone-200'
+            }`}
+          >
+            {soundEnabled ? (
+              <>
+                <IconVolume2 className="w-4 h-4 text-emerald-600" />
+                <span className="hidden md:inline">소리 켬</span>
+              </>
+            ) : (
+              <>
+                <IconVolumeX className="w-4 h-4 text-stone-400" />
+                <span className="hidden md:inline">음소거</span>
+              </>
+            )}
+          </button>
+        </div>
+      </header>
+    );
+
+    // ==========================================
+    // 14. MAIN ROOT APPLICATION
+    // ==========================================
+    function App() {
+      const [currentTab, setCurrentTab] = useState('promotion');
+      const [soundEnabled, setSoundEnabled] = useState(true);
+      const [bgmEnabled, setBgmEnabled] = useState(false);
+      const [showRecordsModal, setShowRecordsModal] = useState(false);
+
+      const toggleSound = () => {
+        const next = !soundEnabled;
+        setSoundEnabled(next);
+        soundController.enabled = next;
+        if (next) soundController.playKeyClick();
+      };
+
+      const toggleBgm = () => {
+        const next = bgmController.toggle();
+        setBgmEnabled(next);
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#F9F8F6] text-stone-900 font-sans selection:bg-amber-200">
+          <Header
+            currentTab={currentTab}
+            onSelectTab={setCurrentTab}
+            soundEnabled={soundEnabled}
+            onToggleSound={toggleSound}
+            bgmEnabled={bgmEnabled}
+            onToggleBgm={toggleBgm}
+            onOpenRecords={() => setShowRecordsModal(true)}
+          />
+
+          {/* Hero Welcome Strip */}
+          <div className="w-full bg-gradient-to-b from-white to-[#F9F8F6] border-b border-stone-200/60 py-6 px-4">
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-1.5 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-semibold text-amber-700">
+                  <IconCompass className="w-4 h-4 text-amber-600" />
+                  <span>AIRLINE TIER PROMOTION CHALLENGE</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900 text-balance">
+                  해외여행 영어 타자 단계별 승급전
+                </h1>
+                <p className="text-xs sm:text-sm text-stone-600 max-w-2xl leading-relaxed">
+                  이코노미부터 VIP 마스터까지! 단어를 입력하고 아래 <strong className="text-amber-800">한글 뜻과 원어민 발음</strong>을 익히며 클래스를 한 단계씩 승급해보세요.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs text-stone-600 bg-white/80 border border-stone-200/80 rounded-2xl p-3 px-4 shadow-2xs shrink-0">
+                <div className="text-center">
+                  <span className="text-[10px] text-stone-400 block font-semibold">승급 단계</span>
+                  <strong className="text-stone-900 font-mono text-sm">5 TIERS</strong>
+                </div>
+                <span className="text-stone-300">|</span>
+                <div className="text-center">
+                  <span className="text-[10px] text-stone-400 block font-semibold">단어 + 한글 뜻</span>
+                  <strong className="text-emerald-700 font-mono text-sm">15 WORDS</strong>
+                </div>
+                <span className="text-stone-300">|</span>
+                <div className="text-center">
+                  <span className="text-[10px] text-stone-400 block font-semibold">최고 등급</span>
+                  <strong className="text-amber-700 font-mono text-sm">VIP MASTER</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Views */}
+          <main className="flex-1">
+            {currentTab === 'promotion' && (
+              <TierPromotionMode onOpenVocab={() => setCurrentTab('vocab')} />
+            )}
+            {currentTab === 'journey' && (
+              <JourneyMode onOpenVocab={() => setCurrentTab('vocab')} />
+            )}
+            {currentTab === 'timeattack' && (
+              <TimeAttackMode />
+            )}
+            {currentTab === 'skydrop' && (
+              <SkyDropMode />
+            )}
+            {currentTab === 'vocab' && (
+              <WordListMode onStartJourney={() => setCurrentTab('promotion')} />
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer className="border-t border-stone-200/80 bg-white mt-12 py-6 px-6 text-center text-xs text-stone-500">
+            <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <IconPlane className="w-4 h-4 text-amber-600 rotate-[-20deg]" />
+                <span className="font-semibold text-stone-800">여행 영어 타자 (Travel English Typing)</span>
+                <span>·</span>
+                <span>단계별 승급전 (이코노미 ➔ 비즈니스 ➔ 퍼스트 ➔ VIP 마스터)</span>
+              </div>
+              <div className="text-stone-400 text-[11px]">
+                Passport · Ticket · Hotel · Airport · Luggage · Subway · Taxi · Menu · Water · Coffee · Bill · Receipt · Restroom · Help · Station
+              </div>
+            </div>
+          </footer>
+
+          <RecordsModal isOpen={showRecordsModal} onClose={() => setShowRecordsModal(false)} />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
